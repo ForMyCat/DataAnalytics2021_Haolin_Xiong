@@ -1,6 +1,7 @@
 #--------------------------------------------------------
 # Data Analytics 2021 FALL Lab02                         |
 # By: Haolin Xiong                                       |
+# RCS: xiongh                                            |
 # 09/24/2021                                             |
 #--------------------------------------------------------
 
@@ -9,6 +10,7 @@
 #-------------------------------------------------------
 library(modeest)
 library(dplyr)
+library(ggplot2)
 
 EPI_dataset <- read.csv('https://aquarius.tw.rpi.edu/html/DA/EPI/EPI_data.csv')
 EPI <- as.numeric(EPI_dataset$EPI)
@@ -49,8 +51,28 @@ qqplot(EPI_dataset$ENVHEALTH,EPI_dataset$ECOSYSTEM,xlab = 'ENVHEALTH', ylab = 'E
 #-------------------------------------------------------
 #Find the most important feature by region
 str(EPI_dataset)
-EPI_subset <- subset(EPI_dataset, select = c(-code, -ISO3V10, -Country, -GEO_subregion, -No_surface_water, -ACSAT_pt_imp, -WATSUP_pt_imp))
-EPI_subset <- EPI_subset %>% group_by(EPI_regions)
+EPI_subset <- subset(EPI_dataset, select = c(-Desert, -code, -ISO3V10, -Country, -GEO_subregion, -No_surface_water, -ACSAT_pt_imp, -WATSUP_pt_imp))
+EPI_EU <- filter(EPI_subset,EPI_regions == 'Europe')
+EPI_EU <- subset(EPI_EU, select = c(-CO2KWH_pt_imp ,-EPI_regions))
+
+EPI_EU_scaled <- data.frame(lapply(EPI_EU, function(x){
+  if(typeof(x) != "integer"){
+    return(scale(x))
+  } else{
+    return(x)
+  }
+}))
+
+lm(EPI ~ ., data = EPI_EU_scaled)
+
+
+fitted_models <- EPI_subset %>% do(model = lm(EPI ~ . - EPI_regions, data = EPI_subset))
+
+
+#summarize(EPI_subset, cor(EPI, Landlock))
+
+#EPI_matrix <- as.matrix(EPI_subset)
+#heatmap(RPI_matrix)
 
 fitted_models <- EPI_subset %>% do(model = lm(EPI ~ . - EPI_regions, data = EPI_subset))
 fitted_models$model
