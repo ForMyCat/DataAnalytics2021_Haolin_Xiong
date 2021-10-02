@@ -38,8 +38,8 @@ lines(density(EPI,na.rm=TRUE,bw='SJ'))
 stem(DALY)
 hist(DALY,seq(0,100,1.0),prob=TRUE)
 #lines(density(DALY,na.rm=TRUE,bw=1))
-lines(density(DALY,na.rm=TRUE,bw='SJ'))
 
+lines(density(DALY,na.rm=TRUE,bw='SJ'))
 #Generate the boxplot
 #?boxplot
 boxplot(EPI_dataset$ENVHEALTH,EPI_dataset$ECOSYSTEM,names = c('ENVHEALTH', 'ECOSYSTEM'))
@@ -47,6 +47,10 @@ boxplot(EPI_dataset$ENVHEALTH,EPI_dataset$ECOSYSTEM,names = c('ENVHEALTH', 'ECOS
 #Generate the Q-Q plot
 #?qqplot
 qqplot(EPI_dataset$ENVHEALTH,EPI_dataset$ECOSYSTEM,xlab = 'ENVHEALTH', ylab = 'ECOSYSTEM')
+
+hist(EPI_dataset$ENVHEALTH,seq(0,100,1.0),prob=TRUE,)
+lines(density(EPI_dataset$ECOSYSTEM,na.rm=TRUE,bw='SJ'))
+lines(density(EPI_dataset$ENVHEALTH,na.rm=TRUE,bw='SJ'))
 
 #-------------------------------------------------------
 #                        Part 1b                        |
@@ -60,9 +64,7 @@ EPI_cor <- data.frame(cor(EPI_SSA,EPI_SSA$EPI))
 EPI_cor <- na.omit(EPI_cor)
 
 EPI_cor <- cbind(newColName = rownames(EPI_cor), EPI_cor)
-
 rownames(EPI_cor) <- 1:nrow(EPI_cor)
-
 colnames(EPI_cor) <- c('variable name','correlation_with_EPI')
 EPI_cor <- EPI_cor %>% arrange(correlation_with_EPI) 
 View(EPI_cor)
@@ -72,16 +74,25 @@ boxplot(EPI_dataset$ENVHEALTH,EPI_dataset$DALY,EPI_dataset$AIR_H,EPI_dataset$WAT
 lmENVH <- lm(ENVHEALTH~DALY+AIR_H+WATER_H, data = EPI_dataset)
 summary(lmENVH)
 cENVH <- coef(lmENVH)
-
-
 DALYNEW <- c(seq(5,95,5))
 AIR_HNEW <- c(seq(5,95,5))
 WATER_HNEW <- c(seq(5,95,5))
 NEW <- data.frame(DALYNEW, AIR_HNEW, WATER_HNEW)
 colnames(NEW) <- c('DALY','AIR_H','WATER_H')
-
 pENV <- lmENVH %>% predict(NEW, interval = 'prediction')
 cENV <- lmENVH %>% predict(NEW, interval = 'confidence')
+View(pENV)
+
+lmAIR_E <- lm(AIR_E~DALY+AIR_H+WATER_H, data = EPI_dataset)
+summary(lmAIR_E)
+pENV <- lmAIR_E %>% predict(NEW, interval = 'prediction')
+cENV <- lmAIR_E %>% predict(NEW, interval = 'confidence')
+View(pENV)
+
+lmCLIMATE <- lm(CLIMATE~DALY+AIR_H+WATER_H, data = EPI_dataset)
+summary(lmCLIMATE)
+pENV <- lmCLIMATE %>% predict(NEW, interval = 'prediction')
+cENV <- lmCLIMATE %>% predict(NEW, interval = 'confidence')
 View(pENV)
 
 #-------------------------------------------------------
@@ -91,6 +102,8 @@ reg_dataset <- read.csv('https://aquarius.tw.rpi.edu/html/DA/dataset_multipleReg
 lmfit <- lm(data = reg_dataset, ROLL ~ HGRAD + UNEM)
 predict(lmfit, data.frame(HGRAD = 90000, UNEM = 0.07))
 
+lmfit <- lm(data = reg_dataset, ROLL ~ HGRAD + UNEM + INC)
+predict(lmfit, data.frame(HGRAD = 90000, UNEM = 0.07, INC = 25000))
 #-------------------------------------------------------
 #                  Part 2 Exercise.2                    |
 #-------------------------------------------------------
@@ -108,20 +121,34 @@ normalize <- function(x) {
 }
 aba[1:7] <- as.data.frame(lapply(aba[1:7], normalize))
 summary(aba$shucked_wieght)
-# After Normalization, each variable has a min of 0 and a max of 1.
-# in other words, values are in the range from 0 to 1.
-# We'll now split the data into training and testing sets.
 ind <- sample(2, nrow(aba), replace=TRUE, prob=c(0.7, 0.3))
 KNNtrain <- aba[ind==1,]
 KNNtest <- aba[ind==2,]
 k <- sqrt(nrow(KNNtrain))
-
-help("knn") # Read the knn documentation on RStudio.
 KNNpred <- knn(train = KNNtrain[1:7], test = KNNtest[1:7], cl = KNNtrain$rings, k = k)
 KNNpred
-table(KNNpred)
+KNNtest[,'rings']
+k_eval <- data.frame(KNNpred,KNNtest[,'rings'])
+compare <- function(x) {
+  return (x[1] == x[2])
+}
+k_eval <- apply(k_eval,1,compare)
+print("The KNN accuracy is:")
+sum(as.numeric(k_eval))/length(k_eval)
+
+
+
 #-------------------------------------------------------
 #                  Part 2 Exercise.3                    |
 #-------------------------------------------------------
-
+View(iris) 
+ggplot(iris,aes(x = Sepal.Length, y = Sepal.Width, col= Species)) + geom_point()
+ggplot(iris,aes(x = Petal.Length, y = Petal.Width, col= Species)) + geom_point()
+k.max <- 12
+wss<- sapply(1:k.max,function(k){kmeans(iris[,1:4],k,nstart = 20,iter.max = 1000)$tot.withinss})
+wss # within sum of squares.
+plot(1:k.max,wss, type= "b", xlab = "Number of clusters(k)", ylab = "Within cluster sum of squares")
+icluster <- kmeans(iris[,1:4],3,nstart = 200,iter.max = 1000)
+table(icluster$cluster,iris$Species)
+icluster$totss
 
