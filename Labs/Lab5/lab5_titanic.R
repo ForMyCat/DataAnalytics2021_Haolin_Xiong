@@ -1,24 +1,22 @@
 #---------------------------------------------
 #----------------Ctree------------------------
 #---------------------------------------------
+data('Titanic')
+View('Titanic')
 
-require(rpart)
-?filter
-titanic_df <- read.csv('train.csv')
-titan_rpart <- rpart(Survived ~ Pclass + Sex + Age + Fare, data = titanic_df)
-plot(titan_rpart) # try some different plot options
-text(titan_rpart) # try some different text options
+library(rpart)
+rpart_out <- rpart(Survived ~ ., data = Titanic)
+print(rpart_out)
 
+library(tree)
 require(party)
-library(party)
-titan_ctree <- ctree(Survived ~ Pclass + Sex + Age + Fare, data = titanic_df)
-plot(titan_ctree)
+ctree_out <- ctree(Survived ~., data= Titanic)
+plot(ctree_out, main = 'Titanic')
 
-titanic_df_dropna <- na.omit(titanic_df)
-titanic_df_hc <- titanic_df[,c(2,3,5,6,10)]
-hc <- hclust(titanic_df_hc, "ave")
-plot(hc)
-plot(hc, hang = -1)
+library(cluster)
+clust_out <- hclust(dist(Titanic))
+print(clust_out)
 
-titanic_df_hc
-View(titanic_df_dropna)
+library(randomForest)
+forest_out <- randomForest(Survived ~., data= Titanic)
+print(forest_out)
