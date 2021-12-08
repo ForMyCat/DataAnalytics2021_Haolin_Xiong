@@ -2,6 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(prob)
 library(caret)
+
 bank_Data <- read.csv(file='bank-additional-full.csv',header=T,sep=';')
 bank_Data
 
@@ -49,12 +50,7 @@ hist(bank_Data$age,
         border="black",
         density=c(10,20) , angle=c(45,135),breaks=30
 )
-##check unique values in each categorical column
-catVars <- select_if(bank_Data, is.factor)  
-for (i in names(catVars)){
-  print(i)
-  print(nrow(unique(catVars[i])))
-}
+
 
 numVars <- select_if(bank_Data, is.numeric)             
 names(numVars)
@@ -70,16 +66,14 @@ for (i in names(numVars)){
 bank_Data <- bank_Data %>% mutate(age_bracket = ntile(age, 3))
 is.numeric(bank_Data$age_bracket)
 
-barplot(table(bank_Data$age_bracket),
+barplot(table(bank_Data$age_backet),
         main="age_backet",
         col='grey',
         border="black",
         density=c(10,20) , angle=c(45,135)
 )
 
-bank_Data$age_bracket <- ifelse(bank_Data$age_bracket == 1, 'Young', 
-                                ifelse(bank_Data$age_bracket == 2, 'Medium','Old'))
-bank_Data$age_bracket <- as.factor(bank_Data$age_bracket)
+bank_Data$age_bracket <- ifelse(bank_Data$age_bracket == 1, 'Young', ifelse(bank_Data$age_bracket == 2, 'Medium','Old'))
 
 ##Reduce the dimension of some categorical values
 catVars <- select_if(bank_Data, is.character)             
@@ -103,15 +97,7 @@ break_income <- function(x){
 
 bank_Data$job_bracket <- lapply(bank_Data$job,break_income)
 bank_Data$job_bracket <- unlist(bank_Data$job_bracket)
-bank_Data$job_bracket <- as.factor(bank_Data$job_bracket)
 typeof(bank_Data$job_bracket)
-
-barplot(table(bank_Data$job_bracket),
-        main="Income Bracket",
-        col='grey',
-        border="black",
-        density=c(10,20) , angle=c(45,135)
-)
 
 #Break down education into brackets
 unique(bank_Data$education)
@@ -120,6 +106,7 @@ mid_edu <- c("high.school","basic.9y")
 high_edu <- c("university.degree","professional.course")
 break_edu <- function(x){
   if(x %in% low_edu){return('low_edu')} 
+  else if(x %in% low_income){return('low_income')} 
   else if(x %in% mid_edu){return('mid_edu')} 
   else if(x %in% high_edu){return('high_edu')}
   else {return('unknown')}
@@ -127,16 +114,7 @@ break_edu <- function(x){
 
 bank_Data$edu_bracket <- lapply(bank_Data$education,break_edu)
 bank_Data$edu_bracket <- unlist(bank_Data$edu_bracket)
-bank_Data$edu_bracket <- as.factor(bank_Data$edu_bracket)
 typeof(bank_Data$edu_bracket)
-
-
-barplot(table(bank_Data$edu_bracket),
-        main="Education Bracket",
-        col='grey',
-        border="black",
-        density=c(10,20) , angle=c(45,135),ylim = c(0,20000)
-)
 
 
 ##Select all the features
@@ -157,18 +135,15 @@ bank_Data$y <- as.factor(bank_Data$y)
 unique(bank_Data$y)
 
 #7:3 train test split
-set.seed(0)
 n = nrow(bank_Data)
 trainIndex = sample(1:n, size = round(0.7*n), replace=FALSE)
 training_data = bank_Data[trainIndex,training_feature]
 testing_data = bank_Data[-trainIndex,training_feature]
 
+
 ##---------------------Models---------------------------------
 #Logistic Regression: Benchmark Feature
 logit_model <- glm(y ~ 0+., data = training_data,family=binomial(link='logit'))
-length(logit_model)
-logit_model$rank
-length(logit_model) > logit_model$rank
 summary(logit_model)
 
 logit_pred <- logit_model %>% predict(testing_data, type = "response")
@@ -176,11 +151,12 @@ logit_pred <- ifelse(logit_pred > 0.5, 1, 0)
 # Model accuracy
 mean(logit_pred == testing_data$y)
 
+unique(bank_Data$loan)
 #Summary of Logitstic Reg shows that:
-#not significant: nr.employed, previous, marital,education, loan, housing
+#not significant: euribor3m, nr.employed, previous, marital,education, loan
 
 selected_features <- 
-  training_feature[!training_feature %in% c('housing','nr.employed','previous',
+  training_feature[!training_feature %in% c('euribor3m','nr.employed','previous',
                                             'marital','loan','default')]
 
 #Random Forest
